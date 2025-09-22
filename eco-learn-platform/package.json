@@ -1,0 +1,19 @@
+{
+  "name": "gyansetu-platform",
+  "version": "1.0.0",
+  "description": "Gamified Environmental Education Platform",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "install-deps": "cd server && npm install && cd ../client && npm install"
+  },
+  "keywords": ["education", "environment", "gamification", "MERN", "sustainability"],
+  "author": "GyanSetu Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
