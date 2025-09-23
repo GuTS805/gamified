@@ -9,6 +9,8 @@ import RecyclingGame from '../components/games/RecyclingGame';
 import CarbonFootprintCalculator from '../components/games/CarbonFootprintCalculator';
 import MemoryCardGame from '../components/games/MemoryCardGame';
 import WaterConservationSimulator from '../components/games/WaterConservationSimulator';
+import WaterSaverChallenge from '../components/games/WaterSaverChallenge';
+import ClimateQuest from '../components/games/ClimateQuest';
 
 interface LessonContent {
   id: string;
@@ -30,7 +32,7 @@ interface LessonContent {
       id: string;
       title: string;
       description: string;
-      type: 'quiz' | 'recycling' | 'carbon' | 'memory' | 'water';
+      type: 'quiz' | 'recycling' | 'carbon' | 'memory' | 'water' | 'watersaver' | 'climatequest';
       icon: string;
       points: number;
       data?: any;
@@ -155,6 +157,14 @@ const LessonDetail: React.FC = () => {
             type: 'carbon',
             icon: '📊',
             points: 40
+          },
+          {
+            id: 'climate-quest',
+            title: 'Climate Quest Decision Game',
+            description: 'Make critical decisions as a climate policy leader and see their global impact',
+            type: 'climatequest',
+            icon: '🌍',
+            points: 100
           },
           {
             id: 'climate-memory',
@@ -294,6 +304,14 @@ const LessonDetail: React.FC = () => {
           ]
         },
         games: [
+          {
+            id: 'water-saver-challenge',
+            title: 'Water Saver Challenge 💧',
+            description: 'Mini-game where water taps are leaking and you must close them, repair pipes, and optimize water use',
+            type: 'watersaver',
+            icon: '🚰',
+            points: 80
+          },
           {
             id: 'water-simulator',
             title: 'Water Conservation Simulator',
@@ -656,6 +674,10 @@ const LessonDetail: React.FC = () => {
         );
       case 'water':
         return <WaterConservationSimulator {...commonProps} />;
+      case 'watersaver':
+        return <WaterSaverChallenge {...commonProps} />;
+      case 'climatequest':
+        return <ClimateQuest {...commonProps} />;
       default:
         return null;
     }
