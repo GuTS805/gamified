@@ -217,10 +217,10 @@ const RecyclingGame: React.FC<RecyclingGameProps> = ({ onComplete, title }) => {
                 onDragStart={() => handleDragStart(item)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="bg-white border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-move hover:border-gray-400 transition-colors"
+                className="bg-white border-2 border-dashed border-gray-300 rounded-xl p-6 min-h-40 cursor-move hover:border-gray-400 transition-colors flex flex-col items-center justify-center"
               >
                 <div className="text-center">
-                  <div className="text-4xl mb-2">{item.icon}</div>
+                  <div className="text-4xl mb-3">{item.icon}</div>
                   <p className="font-semibold text-gray-900 text-sm">{item.name}</p>
                 </div>
               </motion.div>
@@ -245,11 +245,11 @@ const RecyclingGame: React.FC<RecyclingGameProps> = ({ onComplete, title }) => {
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, bin.id)}
                 whileHover={{ scale: 1.02 }}
-                className={`bg-white border-2 ${bin.borderColor} rounded-xl p-4 min-h-32 flex flex-col items-center justify-center text-center hover:shadow-lg transition-all`}
+                className={`bg-white border-2 ${bin.borderColor} rounded-xl p-6 min-h-40 flex flex-col items-center justify-center text-center hover:shadow-lg transition-all cursor-pointer`}
               >
-                <div className="text-4xl mb-2">{bin.icon}</div>
-                <h4 className="font-bold text-gray-900 mb-1">{bin.name}</h4>
-                <p className="text-xs text-gray-600">{bin.description}</p>
+                <div className="text-4xl mb-3">{bin.icon}</div>
+                <h4 className="font-bold text-gray-900 mb-2 text-sm">{bin.name}</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">{bin.description}</p>
               </motion.div>
             ))}
           </div>

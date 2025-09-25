@@ -128,14 +128,22 @@ const Register: React.FC = () => {
           {formData.role === 'student' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Grade</label>
-              <input
-                type="text"
+              <select
                 name="grade"
                 required
                 value={formData.grade}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
+              >
+                <option value="">Select Grade</option>
+                <option value="6">Grade 6</option>
+                <option value="7">Grade 7</option>
+                <option value="8">Grade 8</option>
+                <option value="9">Grade 9</option>
+                <option value="10">Grade 10</option>
+                <option value="11">Grade 11</option>
+                <option value="12">Grade 12</option>
+              </select>
             </div>
           )}
 

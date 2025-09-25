@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 const Leaderboard: React.FC = () => {
   const topUsers = [
-    { name: 'Arjun Sharma', school: 'Green Valley High', points: 1250, level: 12, rank: 1 },
+    { name: 'Anekvarna', school: 'ABES EC', points: 1250, level: 12, rank: 1 },
     { name: 'Priya Patel', school: 'Eco International School', points: 1180, level: 11, rank: 2 },
     { name: 'Rahul Kumar', school: 'Nature Academy', points: 1150, level: 11, rank: 3 },
     { name: 'Anita Singh', school: 'Earth Science School', points: 980, level: 9, rank: 4 },
@@ -46,7 +46,7 @@ const Leaderboard: React.FC = () => {
           <div className="bg-gradient-to-r from-green-500 to-blue-500 p-6">
             <h2 className="text-2xl font-bold text-white text-center">🏆 Top Eco Champions 🏆</h2>
           </div>
-          
+
           <div className="divide-y divide-gray-200">
             {topUsers.map((user, index) => (
               <motion.div

@@ -54,9 +54,15 @@ const LessonDetail: React.FC = () => {
   const [showGameModal, setShowGameModal] = useState(false);
   const [selectedGame, setSelectedGame] = useState<any>(null);
   
-  // Demo mode - always have a working user
-  const [demoGameProgress, setDemoGameProgress] = useState<any[]>([]);
-  const [demoEcoPoints, setDemoEcoPoints] = useState(0);
+  // Game progress with localStorage persistence
+  const [gameHistory, setGameHistory] = useState<any[]>(() => {
+    const saved = localStorage.getItem('ecolearn-game-history');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [totalEcoPoints, setTotalEcoPoints] = useState(() => {
+    const saved = localStorage.getItem('ecolearn-total-points');
+    return saved ? parseInt(saved, 10) : 0;
+  });
   
   const currentUser = {
     id: 'demo-user',
@@ -64,10 +70,10 @@ const LessonDetail: React.FC = () => {
     email: 'demo@example.com',
     role: 'student' as const,
     school: 'Demo School',
-    ecoPoints: 250 + demoEcoPoints,
-    level: 3,
+    ecoPoints: totalEcoPoints,
+    level: Math.floor(totalEcoPoints / 100) + 1,
     streakDays: 7,
-    gameProgress: demoGameProgress,
+    gameProgress: gameHistory,
     badges: []
   };
 
@@ -564,12 +570,45 @@ const LessonDetail: React.FC = () => {
 
   const currentLesson = lessonId ? lessons[lessonId] : null;
 
+  // Debug function - will be removed in production
+  const resetGameHistory = () => {
+    if (window.confirm('Are you sure you want to reset all game progress? This cannot be undone.')) {
+      localStorage.removeItem('ecolearn-game-history');
+      localStorage.removeItem('ecolearn-total-points');
+      setGameHistory([]);
+      setTotalEcoPoints(0);
+      console.log('Game history reset!');
+    }
+  };
+
+  // All useEffect hooks must be at the top before any conditional returns
   useEffect(() => {
     if (!currentLesson) {
       navigate('/lessons');
       return;
     }
   }, [currentLesson, navigate]);
+
+  // Add debug function to window for testing
+  useEffect(() => {
+    (window as any).resetGameHistory = resetGameHistory;
+    return () => {
+      delete (window as any).resetGameHistory;
+    };
+  }, [resetGameHistory]);
+
+  // Add event listener for custom close modal events from games
+  useEffect(() => {
+    const handleCloseModal = () => {
+      setShowGameModal(false);
+      setSelectedGame(null);
+    };
+
+    window.addEventListener('closeGameModal', handleCloseModal);
+    return () => {
+      window.removeEventListener('closeGameModal', handleCloseModal);
+    };
+  }, []);
 
   if (!currentLesson) {
     return (
@@ -588,53 +627,127 @@ const LessonDetail: React.FC = () => {
   }
 
   const handleGameComplete = (gameId: string, score: number, ecoPoints: number) => {
-    // Demo mode - update local state
-    if (lessonId) {
-      const existingIndex = demoGameProgress.findIndex(
-        p => p.lessonId === lessonId && p.gameId === gameId
-      );
+    if (!lessonId) return;
+
+    console.log('Game Complete:', { gameId, score, ecoPoints, lessonId });
+    
+    // Validate and sanitize input
+    const validScore = Math.max(0, Math.min(score || 0, 1000));
+    const validEcoPoints = Math.max(0, ecoPoints || 0);
+    
+    const gameKey = `${lessonId}-${gameId}`;
+    const timestamp = new Date().toISOString();
+    
+    // Find existing game record
+    const existingIndex = gameHistory.findIndex(
+      record => record.gameKey === gameKey
+    );
+    
+    const newGameRecord = {
+      gameKey,
+      gameId,
+      lessonId,
+      score: validScore,
+      maxScore: selectedGame?.points || 100, // Store max possible score for reference
+      ecoPointsEarned: validEcoPoints,
+      completed: true,
+      completedAt: timestamp,
+      attempts: 1,
+      bestScore: validScore,
+      gameTitle: selectedGame?.title || 'Unknown Game'
+    };
+    
+    let updatedHistory: any[];
+    let pointsToAdd = validEcoPoints;
+    
+    if (existingIndex >= 0) {
+      // Update existing record
+      const existingRecord = gameHistory[existingIndex];
+      const wasImprovement = validScore > (existingRecord.bestScore || 0);
       
-      const newProgress = {
-        gameId,
-        lessonId,
-        score,
-        completed: true,
-        completedAt: new Date().toISOString(),
-        attempts: 1
+      updatedHistory = [...gameHistory];
+      updatedHistory[existingIndex] = {
+        ...existingRecord,
+        score: validScore, // Current attempt score
+        bestScore: Math.max(validScore, existingRecord.bestScore || 0),
+        attempts: (existingRecord.attempts || 0) + 1,
+        lastPlayedAt: timestamp,
+        ecoPointsEarned: wasImprovement ? validEcoPoints : existingRecord.ecoPointsEarned
       };
       
-      if (existingIndex >= 0) {
-        const updatedProgress = [...demoGameProgress];
-        updatedProgress[existingIndex] = { ...updatedProgress[existingIndex], score: Math.max(score, updatedProgress[existingIndex].score) };
-        setDemoGameProgress(updatedProgress);
-      } else {
-        setDemoGameProgress([...demoGameProgress, newProgress]);
-      }
-      
-      setDemoEcoPoints(demoEcoPoints + ecoPoints);
+      // Only add points if this is an improvement
+      pointsToAdd = wasImprovement ? (validEcoPoints - (existingRecord.ecoPointsEarned || 0)) : 0;
+    } else {
+      // Add new record
+      updatedHistory = [...gameHistory, newGameRecord];
     }
-    setShowGameModal(false);
-    setSelectedGame(null);
+    
+    // Update state and localStorage
+    setGameHistory(updatedHistory);
+    localStorage.setItem('ecolearn-game-history', JSON.stringify(updatedHistory));
+    
+    // Update total points if points were earned
+    if (pointsToAdd > 0) {
+      const newTotalPoints = totalEcoPoints + pointsToAdd;
+      setTotalEcoPoints(newTotalPoints);
+      localStorage.setItem('ecolearn-total-points', newTotalPoints.toString());
+    }
+    
+    console.log('Updated game history:', updatedHistory);
+    console.log('Points added:', pointsToAdd);
+    
+    // Don't automatically close the modal - let user decide when to close
+    // setShowGameModal(false);
+    // setSelectedGame(null);
   };
 
   const isGameCompleted = (gameId: string) => {
     if (!lessonId) return false;
-    return demoGameProgress.some(
-      p => p.lessonId === lessonId && p.gameId === gameId && p.completed
-    );
+    const gameKey = `${lessonId}-${gameId}`;
+    const gameRecord = gameHistory.find(record => record.gameKey === gameKey);
+    return gameRecord?.completed || false;
   };
 
   const getGameScore = (gameId: string) => {
     if (!lessonId) return 0;
-    const progress = demoGameProgress.find(
-      p => p.lessonId === lessonId && p.gameId === gameId
-    );
-    return progress?.score || 0;
+    const gameKey = `${lessonId}-${gameId}`;
+    const gameRecord = gameHistory.find(record => record.gameKey === gameKey);
+    return gameRecord?.bestScore || 0;
+  };
+
+  const getGameAttempts = (gameId: string) => {
+    if (!lessonId) return 0;
+    const gameKey = `${lessonId}-${gameId}`;
+    const gameRecord = gameHistory.find(record => record.gameKey === gameKey);
+    return gameRecord?.attempts || 0;
   };
 
   const getTotalEcoPointsEarned = () => {
-    return demoEcoPoints;
+    return totalEcoPoints;
   };
+
+  const getLessonStats = () => {
+    if (!currentLesson || !lessonId) return { completed: 0, totalScore: 0, maxPossible: 0 };
+    
+    const lessonGames = currentLesson.sections.games;
+    let totalScore = 0;
+    let maxPossible = 0;
+    let completed = 0;
+    
+    lessonGames.forEach(game => {
+      const gameKey = `${lessonId}-${game.id}`;
+      const gameRecord = gameHistory.find(record => record.gameKey === gameKey);
+      
+      maxPossible += game.points;
+      if (gameRecord?.completed) {
+        completed += 1;
+        totalScore += gameRecord.bestScore || 0;
+      }
+    });
+    
+    return { completed, totalScore, maxPossible };
+  };
+
 
   const openGame = (game: any) => {
     setSelectedGame(game);
@@ -684,10 +797,10 @@ const LessonDetail: React.FC = () => {
   };
 
   const completionPercentage = currentLesson ? Math.round(
-    (currentLesson.sections.games.filter(game => isGameCompleted(game.id)).length / currentLesson.sections.games.length) * 100
+    (getLessonStats().completed / currentLesson.sections.games.length) * 100
   ) : 0;
   
-  const totalEcoPoints = getTotalEcoPointsEarned();
+  const currentEcoPoints = getTotalEcoPointsEarned();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-teal-50">
@@ -708,7 +821,12 @@ const LessonDetail: React.FC = () => {
                 <span className="font-semibold">Progress: {completionPercentage}%</span>
               </div>
               <div className="bg-white/20 px-4 py-2 rounded-full">
-                <span className="font-semibold">EcoPoints: {totalEcoPoints}</span>
+                <span className="font-semibold">
+                  Games: {getLessonStats().completed}/{currentLesson.sections.games.length}
+                </span>
+              </div>
+              <div className="bg-white/20 px-4 py-2 rounded-full">
+                <span className="font-semibold">Total EcoPoints: {currentEcoPoints}</span>
               </div>
             </div>
           </div>
@@ -823,6 +941,37 @@ const LessonDetail: React.FC = () => {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
+              {/* Games Summary */}
+              <div className="mb-8 bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">📊 Your Performance Summary</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600 score-display">
+                      {getLessonStats().completed}
+                    </div>
+                    <div className="text-xs text-gray-600">Games Completed</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600 score-display">
+                      {getLessonStats().totalScore}
+                    </div>
+                    <div className="text-xs text-gray-600">Best Scores Total</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600 score-display">
+                      {getLessonStats().maxPossible}
+                    </div>
+                    <div className="text-xs text-gray-600">Max Possible</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-orange-600 score-display">
+                      {getLessonStats().maxPossible > 0 ? Math.round((getLessonStats().totalScore / getLessonStats().maxPossible) * 100) : 0}%
+                    </div>
+                    <div className="text-xs text-gray-600">Success Rate</div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {currentLesson.sections.games.map((game, index) => (
                   <motion.div
@@ -851,10 +1000,26 @@ const LessonDetail: React.FC = () => {
                       </div>
                       
                       {isGameCompleted(game.id) && (
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-gray-600">Your Score:</span>
-                          <span className="font-semibold text-green-600">{getGameScore(game.id)}</span>
-                        </div>
+                        <>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600">Best Score:</span>
+                            <span className="font-semibold text-green-600 score-display">
+                              {getGameScore(game.id)} / {game.points} pts
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600">Attempts:</span>
+                            <span className="font-semibold text-blue-600 score-display">
+                              {getGameAttempts(game.id)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600">Success Rate:</span>
+                            <span className="font-semibold text-purple-600 score-display">
+                              {Math.round((getGameScore(game.id) / game.points) * 100)}%
+                            </span>
+                          </div>
+                        </>
                       )}
                       
                       <button
@@ -934,26 +1099,57 @@ const LessonDetail: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 overflow-y-auto"
+            onClick={(e) => {
+              // Close modal when clicking on backdrop
+              if (e.target === e.currentTarget) {
+                setShowGameModal(false);
+                setSelectedGame(null);
+              }
+            }}
           >
             <motion.div
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.8 }}
-              className="bg-white rounded-2xl max-w-6xl w-full max-h-full overflow-y-auto relative"
+              className="bg-white rounded-2xl max-w-6xl w-full max-h-full overflow-y-auto relative shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
             >
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-                <h2 className="text-xl font-bold text-gray-900">{selectedGame.title}</h2>
-                <button
-                  onClick={() => {
-                    setShowGameModal(false);
-                    setSelectedGame(null);
-                  }}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
-                >
-                  ×
-                </button>
+              {/* Enhanced Close Button */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center z-10">
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl">{selectedGame.icon}</span>
+                  <h2 className="text-xl font-bold text-gray-900">{selectedGame.title}</h2>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => {
+                      // Restart the current game
+                      const currentGameElement = document.querySelector('[data-game-id="' + selectedGame.id + '"]');
+                      if (currentGameElement) {
+                        window.location.reload();
+                      }
+                    }}
+                    className="flex items-center space-x-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors text-sm font-medium"
+                    title="Restart Game"
+                  >
+                    <span>🔄</span>
+                    <span>Restart</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGameModal(false);
+                      setSelectedGame(null);
+                    }}
+                    className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 rounded-full transition-all duration-200 text-xl font-bold hover:scale-110"
+                    title="Close Game"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
+              
+              {/* Game Content */}
               <div className="p-6">
                 {renderGame()}
               </div>

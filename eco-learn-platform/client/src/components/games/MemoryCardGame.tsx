@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Card {
@@ -24,6 +24,7 @@ const MemoryCardGame: React.FC<MemoryGameProps> = ({ onComplete, title, theme })
   const [score, setScore] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
+  const moveIncrementedRef = useRef(false);
 
   const cardSets = useMemo(() => ({
     climate: [
@@ -96,25 +97,37 @@ const MemoryCardGame: React.FC<MemoryGameProps> = ({ onComplete, title, theme })
   }, [gameStarted, gameComplete]);
 
   useEffect(() => {
-    if (flippedCards.length === 2) {
+    if (flippedCards.length === 2 && !moveIncrementedRef.current) {
       const [first, second] = flippedCards;
       const firstCard = cards.find(card => card.id === first);
       const secondCard = cards.find(card => card.id === second);
 
+      // Increment moves only once per pair attempt
+      setMoves(prev => prev + 1);
+      moveIncrementedRef.current = true;
+
       if (firstCard && secondCard && firstCard.pairId === secondCard.pairId) {
         // Match found
         setMatchedPairs(prev => [...prev, firstCard.pairId]);
-        setFlippedCards([]);
+        setTimeout(() => {
+          setFlippedCards([]);
+        }, 500);
         setScore(prev => prev + Math.max(10, 50 - moves * 2));
       } else {
-        // No match
+        // No match - wait then flip cards back
         setTimeout(() => {
           setFlippedCards([]);
         }, 1000);
       }
-      setMoves(prev => prev + 1);
     }
-  }, [flippedCards, cards, moves]);
+  }, [flippedCards, cards]);
+
+  // Reset the move increment flag when cards are reset
+  useEffect(() => {
+    if (flippedCards.length === 0) {
+      moveIncrementedRef.current = false;
+    }
+  }, [flippedCards]);
 
   useEffect(() => {
     if (matchedPairs.length === cardSets[theme].length) {
@@ -195,10 +208,10 @@ const MemoryCardGame: React.FC<MemoryGameProps> = ({ onComplete, title, theme })
           <div>⏱️ Time: {formatTime(timeElapsed)}</div>
           <div>🎯 Moves: {moves}</div>
           <div>🎮 Pairs Found: {matchedPairs.length}/{cardSets[theme].length}</div>
-          <div>📈 Accuracy: {Math.round((matchedPairs.length / moves) * 100)}%</div>
+          <div>📈 Accuracy: {moves > 0 ? Math.round((matchedPairs.length / moves) * 100) : 0}%</div>
         </div>
 
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
           <h4 className="font-semibold text-blue-900 mb-2">🧠 Memory Tips:</h4>
           <ul className="text-sm text-blue-800 space-y-1">
             <li>• Practice regularly to improve memory</li>
@@ -206,6 +219,62 @@ const MemoryCardGame: React.FC<MemoryGameProps> = ({ onComplete, title, theme })
             <li>• Use visualization techniques</li>
             <li>• Stay focused and avoid distractions</li>
           </ul>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              // Reset the memory game
+              setFlippedCards([]);
+              setMatchedPairs([]);
+              setMoves(0);
+              setGameComplete(false);
+              setScore(0);
+              setTimeElapsed(0);
+              setGameStarted(false);
+              moveIncrementedRef.current = false;
+              // Re-shuffle cards
+              const selectedCards = cardSets[theme];
+              const gameCards: any[] = [];
+              selectedCards.forEach(card => {
+                gameCards.push({
+                  id: `${card.pairId}-image`,
+                  content: card.image,
+                  type: 'image',
+                  pairId: card.pairId,
+                  description: card.description
+                });
+                gameCards.push({
+                  id: `${card.pairId}-text`,
+                  content: card.text,
+                  type: 'text',
+                  pairId: card.pairId,
+                  description: card.description
+                });
+              });
+              setCards(gameCards.sort(() => Math.random() - 0.5));
+            }}
+            className="flex items-center space-x-2 bg-gradient-to-r from-green-400 to-blue-500 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300"
+          >
+            <span>🔄</span>
+            <span>Play Again</span>
+          </motion.button>
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              const event = new CustomEvent('closeGameModal');
+              window.dispatchEvent(event);
+            }}
+            className="flex items-center space-x-2 bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 px-6 py-3 rounded-xl font-semibold transition-all duration-300"
+          >
+            <span>✓</span>
+            <span>Done</span>
+          </motion.button>
         </div>
       </motion.div>
     );
@@ -228,7 +297,7 @@ const MemoryCardGame: React.FC<MemoryGameProps> = ({ onComplete, title, theme })
             <span className="text-blue-600 font-semibold">Time: {formatTime(timeElapsed)}</span>
           </div>
           <div className="bg-green-50 px-4 py-2 rounded-full">
-            <span className="text-green-600 font-semibold">Moves: {moves}</span>
+            <span className="text-green-600 font-semibold score-display">Moves: {moves}</span>
           </div>
           <div className="bg-purple-50 px-4 py-2 rounded-full">
             <span className="text-purple-600 font-semibold">Score: {score}</span>

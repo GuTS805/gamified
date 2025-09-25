@@ -37,11 +37,11 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, grade?: string) => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
-  updateGameProgress: (lessonId: string, gameId: string, score: number, ecoPoints: number) => void;
+  updateGameProgress: (lessonId: string, gameId: string, score: number, ecoPoints: number) => Promise<void>;
   getGameProgress: (lessonId: string, gameId: string) => GameProgress | null;
   getLessonProgress: (lessonId: string) => number;
 }
@@ -103,11 +103,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, [token]);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (email: string, password: string, grade?: string): Promise<void> => {
     try {
       const response = await axios.post(`${API_BASE_URL}/auth/login`, {
         email,
         password,
+        grade,
       });
 
       if (response.data.success) {
@@ -155,7 +156,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(prev => prev ? { ...prev, ...userData } : null);
   };
 
-  const updateGameProgress = (lessonId: string, gameId: string, score: number, ecoPoints: number): void => {
+  const updateGameProgress = async (lessonId: string, gameId: string, score: number, ecoPoints: number): Promise<void> => {
     if (!user) return;
 
     const existingProgress = user.gameProgress.find(
@@ -163,14 +164,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
 
     let updatedGameProgress: GameProgress[];
+    let pointsToAdd = 0;
 
     if (existingProgress) {
       // Update existing progress
+      const newScore = Math.max(existingProgress.score, score);
+      pointsToAdd = newScore - existingProgress.score; // Only add difference in score
+      
       updatedGameProgress = user.gameProgress.map(p => 
         p.lessonId === lessonId && p.gameId === gameId
           ? {
               ...p,
-              score: Math.max(p.score, score), // Keep highest score
+              score: newScore,
               completed: true,
               completedAt: new Date().toISOString(),
               attempts: p.attempts + 1
@@ -179,6 +184,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       );
     } else {
       // Add new progress
+      pointsToAdd = ecoPoints;
       updatedGameProgress = [
         ...user.gameProgress,
         {
@@ -192,11 +198,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       ];
     }
 
-    setUser({
+    const updatedUser = {
       ...user,
       gameProgress: updatedGameProgress,
-      ecoPoints: user.ecoPoints + ecoPoints
-    });
+      ecoPoints: user.ecoPoints + pointsToAdd
+    };
+
+    setUser(updatedUser);
+
+    // Persist to database
+    try {
+      await axios.put(`${API_BASE_URL}/users/game-progress`, {
+        lessonId,
+        gameId,
+        score,
+        ecoPoints: pointsToAdd
+      });
+    } catch (error) {
+      console.error('Failed to save game progress:', error);
+      // Optionally revert the local state if database update fails
+    }
   };
 
   const getGameProgress = (lessonId: string, gameId: string): GameProgress | null => {

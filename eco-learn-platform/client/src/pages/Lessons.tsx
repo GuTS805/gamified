@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -113,14 +113,6 @@ const achievements = [
 const LessonsPage: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
-  const [scrollY, setScrollY] = useState(0);
-
-  // Handle scroll for parallax effects
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const filteredLessons = environmentalLessons.filter(lesson => {
     if (selectedFilter === 'all') return true;
@@ -137,12 +129,12 @@ const LessonsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-teal-50">
-      {/* Hero Section with Parallax Effect */}
+      {/* Hero Section */}
       <motion.section 
         className="relative overflow-hidden bg-gradient-to-r from-green-600 to-blue-600 text-white py-20"
-        style={{
-          transform: `translateY(${scrollY * 0.5}px)`
-        }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
       >
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="relative max-w-7xl mx-auto px-4 text-center">

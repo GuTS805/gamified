@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [grade, setGrade] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -18,7 +19,7 @@ const Login: React.FC = () => {
     setLoading(true);
     
     try {
-      await login(email, password);
+      await login(email, password, grade);
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message);
@@ -89,6 +90,28 @@ const Login: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   placeholder="Enter your password"
                 />
+              </div>
+              
+              <div>
+                <label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-1">
+                  Grade (for students)
+                </label>
+                <select
+                  id="grade"
+                  name="grade"
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="">Select Grade (Optional)</option>
+                  <option value="6">Grade 6</option>
+                  <option value="7">Grade 7</option>
+                  <option value="8">Grade 8</option>
+                  <option value="9">Grade 9</option>
+                  <option value="10">Grade 10</option>
+                  <option value="11">Grade 11</option>
+                  <option value="12">Grade 12</option>
+                </select>
               </div>
             </div>
 

@@ -4,6 +4,21 @@ import { useAuth } from '../contexts/AuthContext';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  
+  const getTimeAgo = (date: Date): string => {
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+      return diffInMinutes <= 1 ? 'just now' : `${diffInMinutes} minutes ago`;
+    } else if (diffInHours < 24) {
+      return diffInHours === 1 ? '1 hour ago' : `${diffInHours} hours ago`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return diffInDays === 1 ? '1 day ago' : `${diffInDays} days ago`;
+    }
+  };
 
   if (!user) {
     return (
@@ -16,11 +31,14 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  const completedGames = user.gameProgress?.filter(p => p.completed).length || 0;
+  const totalAttempts = user.gameProgress?.reduce((sum, p) => sum + p.attempts, 0) || 0;
+  
   const stats = [
     { label: 'EcoPoints', value: user.ecoPoints || 0, icon: '🏆', color: 'green' },
     { label: 'Level', value: user.level || 1, icon: '⭐', color: 'yellow' },
-    { label: 'Streak', value: user.streakDays || 0, icon: '🔥', color: 'red' },
-    { label: 'Badges', value: user.badges?.length || 0, icon: '🎖️', color: 'blue' }
+    { label: 'Games Completed', value: completedGames, icon: '🎮', color: 'purple' },
+    { label: 'Day Streak', value: user.streakDays || 0, icon: '🔥', color: 'red' }
   ];
 
   return (
@@ -73,27 +91,33 @@ const Dashboard: React.FC = () => {
           >
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Recent Activity</h2>
             <div className="space-y-4">
-              <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                <span className="text-2xl">📚</span>
-                <div>
-                  <p className="font-medium">Completed lesson: "Climate Change Basics"</p>
-                  <p className="text-sm text-gray-600">+20 EcoPoints • 2 hours ago</p>
+              {user.gameProgress && user.gameProgress.length > 0 ? (
+                user.gameProgress
+                  .filter(p => p.completed)
+                  .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+                  .slice(0, 3)
+                  .map((progress, index) => {
+                    const completedDate = new Date(progress.completedAt);
+                    const timeAgo = getTimeAgo(completedDate);
+                    return (
+                      <div key={index} className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                        <span className="text-2xl">🎮</span>
+                        <div>
+                          <p className="font-medium">Completed game in lesson {progress.lessonId}</p>
+                          <p className="text-sm text-gray-600">Score: {progress.score} • {timeAgo}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+              ) : (
+                <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
+                  <span className="text-2xl">🌱</span>
+                  <div>
+                    <p className="font-medium">Ready to start your eco-learning journey!</p>
+                    <p className="text-sm text-gray-600">Complete your first game to see progress here</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-                <span className="text-2xl">🎯</span>
-                <div>
-                  <p className="font-medium">Joined challenge: "Water Conservation Week"</p>
-                  <p className="text-sm text-gray-600">1 day ago</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg">
-                <span className="text-2xl">🏆</span>
-                <div>
-                  <p className="font-medium">Earned badge: "Sustainability Champion"</p>
-                  <p className="text-sm text-gray-600">3 days ago</p>
-                </div>
-              </div>
+              )}
             </div>
           </motion.div>
 

@@ -115,9 +115,47 @@ const QuizGame: React.FC<QuizGameProps> = ({ questions, onComplete, title, theme
         <p className="text-lg text-gray-600 mb-4">
           You scored {score} out of {questions.reduce((acc, q) => acc + q.points, 0)} points!
         </p>
-        <div className="flex justify-center">
-          <div className={`px-6 py-3 bg-gradient-to-r ${colors.primary} text-white rounded-full font-semibold`}>
-            🌟 +{totalPoints} EcoPoints Earned!
+        <div className="mb-6">
+          <div className="flex justify-center mb-6">
+            <div className={`px-6 py-3 bg-gradient-to-r ${colors.primary} text-white rounded-full font-semibold`}>
+              🌟 +{totalPoints} EcoPoints Earned!
+            </div>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                // Reset the quiz to play again
+                setCurrentQuestion(0);
+                setSelectedAnswer(null);
+                setScore(0);
+                setTotalPoints(0);
+                setShowExplanation(false);
+                setGameComplete(false);
+                setTimeLeft(30);
+                setIsTimerActive(true);
+              }}
+              className={`flex items-center space-x-2 bg-gradient-to-r ${colors.primary} text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300`}
+            >
+              <span>🔄</span>
+              <span>Take Quiz Again</span>
+            </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                const event = new CustomEvent('closeGameModal');
+                window.dispatchEvent(event);
+              }}
+              className="flex items-center space-x-2 bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 px-6 py-3 rounded-xl font-semibold transition-all duration-300"
+            >
+              <span>✓</span>
+              <span>Done</span>
+            </motion.button>
           </div>
         </div>
       </motion.div>

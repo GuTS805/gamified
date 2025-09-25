@@ -295,19 +295,26 @@ const Challenges: React.FC = () => {
                 onClick={() => setSelectedChallenge(selectedChallenge === challenge.id ? null : challenge.id)}
                 className="relative bg-white rounded-3xl shadow-lg overflow-hidden cursor-pointer group"
               >
-                {/* Status Badge */}
+                {/* Status Badge - top right */}
                 <div className="absolute top-4 right-4 z-10">
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(challenge.status)}`}>
                     {challenge.status.replace('_', ' ').toUpperCase()}
                   </span>
                 </div>
 
+                {/* Difficulty Badge - top left */}
+                <div className="absolute top-4 left-4 z-10">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDifficultyColor(challenge.difficulty)}`}>
+                    {challenge.difficulty}
+                  </span>
+                </div>
+
                 {/* Background Gradient */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${challenge.bgGradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
                 
-                <div className="p-8 relative z-10">
-                  {/* Icon and Difficulty */}
-                  <div className="flex items-start justify-between mb-4">
+                <div className="pt-12 px-8 pb-8 relative z-10">
+                  {/* Icon */}
+                  <div className="flex items-start mb-4">
                     <motion.div
                       whileHover={{
                         scale: 1.2,
@@ -318,9 +325,6 @@ const Challenges: React.FC = () => {
                     >
                       {challenge.icon}
                     </motion.div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(challenge.difficulty)}`}>
-                      {challenge.difficulty}
-                    </span>
                   </div>
 
                   <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">

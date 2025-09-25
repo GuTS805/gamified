@@ -44,6 +44,28 @@ code {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
 }
 
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Fix any scroll glitches */
+body {
+  overflow-x: hidden;
+}
+
+/* Performance optimizations */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Better number formatting */
+.score-display {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.025em;
+}
+
 .text-gradient {
   background: linear-gradient(135deg, #22c55e, #16a34a);
   -webkit-background-clip: text;
