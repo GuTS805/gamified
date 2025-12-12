@@ -90,7 +90,7 @@ router.post('/login', [
             return res.status(400).json({ errors: errors.array() });
         }
 
-        const { email, password } = req.body;
+        const { email, password, grade } = req.body;
 
         // Check if user exists
         const user = await User.findOne({ email });
@@ -116,6 +116,12 @@ router.post('/login', [
         }
 
         user.lastLoginDate = new Date();
+        
+        // Update grade if provided (for students)
+        if (grade && user.role === 'student') {
+            user.grade = grade;
+        }
+        
         await user.save();
 
         // Generate token
@@ -134,7 +140,8 @@ router.post('/login', [
                 ecoPoints: user.ecoPoints,
                 level: user.level,
                 streakDays: user.streakDays,
-                badges: user.badges
+                badges: user.badges,
+                gameProgress: user.gameProgress || []
             }
         });
     } catch (error) {

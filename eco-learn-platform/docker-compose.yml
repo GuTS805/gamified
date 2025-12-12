@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7
+    container_name: gyansetu-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: eco_learn_platform
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - gyansetu-network
+
+  # Backend API
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: gyansetu-api
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/eco_learn_platform?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-eco_learn_jwt_secret_key_2024_production}
+      JWT_EXPIRE: 7d
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./server/uploads:/app/uploads
+    networks:
+      - gyansetu-network
+
+  # Frontend (for development - use separate hosting for production)
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: gyansetu-client
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      REACT_APP_API_URL: http://localhost:5000/api
+    ports:
+      - "3000:3000"
+    networks:
+      - gyansetu-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  gyansetu-network:
+    driver: bridge

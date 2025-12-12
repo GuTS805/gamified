@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
-        lowercase: true
+        lowercase: true,
     },
     password: {
         type: String,
@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema({
     },
     grade: {
         type: String,
-        required: function() {
+        required: function () {
             return this.role === 'student';
         }
     },
@@ -96,6 +96,31 @@ const userSchema = new mongoose.Schema({
     lastLoginDate: {
         type: Date
     },
+    gameProgress: [{
+        gameId: {
+            type: String,
+            required: true
+        },
+        lessonId: {
+            type: String,
+            required: true
+        },
+        score: {
+            type: Number,
+            default: 0
+        },
+        completed: {
+            type: Boolean,
+            default: false
+        },
+        completedAt: {
+            type: Date
+        },
+        attempts: {
+            type: Number,
+            default: 0
+        }
+    }],
     preferences: {
         notifications: {
             type: Boolean,
@@ -111,27 +136,27 @@ const userSchema = new mongoose.Schema({
 });
 
 // Password hashing middleware
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
-    
+
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
     next();
 });
 
 // Compare password method
-userSchema.methods.comparePassword = async function(password) {
+userSchema.methods.comparePassword = async function (password) {
     return await bcrypt.compare(password, this.password);
 };
 
 // Calculate level based on eco points
-userSchema.methods.calculateLevel = function() {
+userSchema.methods.calculateLevel = function () {
     this.level = Math.floor(this.ecoPoints / 100) + 1;
     return this.level;
 };
 
 // Add eco points and update level
-userSchema.methods.addEcoPoints = function(points) {
+userSchema.methods.addEcoPoints = function (points) {
     this.ecoPoints += points;
     this.calculateLevel();
     return this.ecoPoints;

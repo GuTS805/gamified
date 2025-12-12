@@ -40,9 +40,23 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: 'Something went wrong!' });
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'healthy', 
+        timestamp: new Date().toISOString(),
+        service: 'GyanSetu API',
+        version: '1.0.0'
+    });
+});
+
 // Default route
 app.get('/', (req, res) => {
-    res.json({ message: 'Eco Learn Platform API is running!' });
+    res.json({ 
+        message: 'GyanSetu Platform API is running!',
+        documentation: '/api/health',
+        version: '1.0.0'
+    });
 });
 
 const PORT = process.env.PORT || 5000;
